@@ -306,10 +306,16 @@ or too many inputs, uploads without confirmation, no API key configured).
 
 **Data handling and the API key**
 
-In review mode the de-identified text is sent to Google's Gemini API on the paid tier, under which Google does not use
-prompts or responses to train its models. Users do not enter a key: the Galaxy server administrators supply it as the
-environment variable ``BARS_GEMINI_API_KEY``, and it is visible to them in job scripts. Ask your administrators whether
-this tool is enabled with a key on your server.
+In review mode the de-identified text is sent to Google's Gemini API. On the paid tier Google does not use prompts or
+responses to train its models. The key comes from one of two places:
+
+- **Your own key** (takes precedence): add a Gemini API key to this tool's credentials (**Google Gemini API (BARS)**)
+  in your Galaxy user preferences. Galaxy keeps it in its encrypted vault and passes it only to your jobs. Reviews are
+  billed to it.
+- **The server's key**: the Galaxy administrators may provide one as the environment variable ``BARS_GEMINI_API_KEY``
+  for users they enable. It is visible to them in job scripts.
+
+Scrub mode needs no key. The run metadata records which key was used (``user`` or ``server``), never the key itself.
 
 -----
 

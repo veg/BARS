@@ -49,6 +49,7 @@ def make_response(text=REVIEW_MD, finish="STOP", model_version="gemini-test-001"
 def clean_env(monkeypatch):
     monkeypatch.delenv("BARS_MOCK", raising=False)
     monkeypatch.delenv("BARS_GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("BARS_USER_GEMINI_API_KEY", raising=False)
 
 
 @pytest.fixture
@@ -199,14 +200,14 @@ def test_blocked_prompt_raises(sleeps):
 
 
 def test_missing_key_raises_before_any_call():
-    with pytest.raises(ReviewError, match="BARS_GEMINI_API_KEY is not set"):
+    with pytest.raises(ReviewError, match="no Gemini API key"):
         review.review("text", "MANUSCRIPT_001", "gemini-test")
 
 
 def test_key_taken_from_env_only(monkeypatch, sleeps):
     monkeypatch.setenv("GEMINI_API_KEY", "other-key")
     monkeypatch.setenv("GOOGLE_API_KEY", "other-key")
-    with pytest.raises(ReviewError, match="BARS_GEMINI_API_KEY is not set"):
+    with pytest.raises(ReviewError, match="no Gemini API key"):
         review.review("text", "MANUSCRIPT_001", "gemini-test")
 
     seen = []
@@ -214,6 +215,29 @@ def test_key_taken_from_env_only(monkeypatch, sleeps):
     monkeypatch.setenv("BARS_GEMINI_API_KEY", f" {FAKE_KEY}\n")
     review.review("text", "MANUSCRIPT_001", "gemini-test", sleep=sleeps.append)
     assert seen == [FAKE_KEY]
+
+
+USER_KEY = "AIzaUSERkeyUSERkeyUSERkeyUSERkeyUSER12"
+
+
+@pytest.mark.parametrize(("user", "server", "expected"), [
+    (USER_KEY, FAKE_KEY, (USER_KEY, "user")),
+    (None, FAKE_KEY, (FAKE_KEY, "server")),
+    (USER_KEY, None, (USER_KEY, "user")),
+    ("  \n", FAKE_KEY, (FAKE_KEY, "server")),  # a blank user key does not mask the server's
+    (None, None, ("", "")),
+])
+def test_user_key_takes_precedence_over_server_key(monkeypatch, sleeps, user, server, expected):
+    for env, value in (("BARS_USER_GEMINI_API_KEY", user), ("BARS_GEMINI_API_KEY", server)):
+        if value is not None:
+            monkeypatch.setenv(env, value)
+    assert review.resolve_key() == expected
+    assert sorted(review.env_keys()) == sorted(k for k in (user, server) if k and k.strip())
+    if expected[0]:
+        seen = []
+        monkeypatch.setattr(review, "_make_client", lambda key: seen.append(key) or FakeClient(make_response()))
+        review.review("text", "MANUSCRIPT_001", "gemini-test", sleep=sleeps.append)
+        assert seen == [expected[0]]
 
 
 def test_real_client_is_constructed_without_network():

@@ -56,24 +56,28 @@ deletes the `*.md` files a previous run left in `scrubbed/` and `reviews/`.
   are still fetched from Europe PMC). Use it to inspect exactly what the reviewer would see.
 - **`BARS_MOCK=1`**: review mode returns a canned, valid review (model version `mock`) without network or key, to
   exercise the review, parse and provenance path end to end. Never set it on a production server.
-- **API key**: read only from the environment variable `BARS_GEMINI_API_KEY`. In Galaxy there is no `<credentials>`
-  block: server admins set the variable in the job environment of the destination that runs `bars_review`, so it is
-  visible to them in job scripts (containerised destinations must pass it through). Never commit a key or write it to
-  test data. The variable in the Galaxy server's own environment does **not** reach jobs: the local runner starts
-  jobs with a clean environment (`HOME`, `LC_CTYPE`, `PATH`, `TMPDIR` only), so it has to come from the destination,
-  e.g. in `job_conf.yml`:
+- **API key**: two sources, in order of precedence. The run metadata records which one was used (`api_key_source`:
+  `user`, `server`, `mock` or `none`), never the key. Never commit a key or write it to test data.
+  1. `BARS_USER_GEMINI_API_KEY`: the user's own key. The tool declares an optional `<credentials>` secret
+     (`bars_gemini`), so on Galaxy 25.1+ with a vault configured each user can store a key in their preferences and
+     Galaxy injects it into their jobs only (and passes it into containers).
+  2. `BARS_GEMINI_API_KEY`: the server's key. Admins set it in the job environment of the destination that runs
+     `bars_review` (visible to them in job scripts; containerised destinations must pass it through). The variable in
+     the Galaxy server's own environment does **not** reach jobs: the local runner starts jobs with a clean
+     environment (`HOME`, `LC_CTYPE`, `PATH`, `TMPDIR` only), so it has to come from the destination, e.g. in
+     `job_conf.yml`:
 
-  ```yaml
-  execution:
-    environments:
-      bars:
-        runner: local
-        env:
-          - file: /etc/galaxy/bars_secrets.sh   # export BARS_GEMINI_API_KEY=...; readable by the Galaxy user only
-  tools:
-    - id: bars_review
-      environment: bars
-  ```
+     ```yaml
+     execution:
+       environments:
+         bars:
+           runner: local
+           env:
+             - file: /etc/galaxy/bars_secrets.sh   # export BARS_GEMINI_API_KEY=...; readable by the Galaxy user only
+     tools:
+       - id: bars_review
+         environment: bars
+     ```
 
 - **Spending**: the 25-paper cap (`@MAX_PAPERS@` in `macros.xml`) applies per job, not per user. Mapping the tool
   over a collection (a list of identifier files, or a `list:list` of uploads) starts one job per element, each making

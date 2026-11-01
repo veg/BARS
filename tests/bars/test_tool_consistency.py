@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from bars import __version__, cli, parse
+from bars import __version__, cli, parse, review
 
 REPO = Path(__file__).resolve().parents[2]
 TOOL_DIR = REPO / "galaxy" / "bars_review"
@@ -53,3 +53,10 @@ def test_package_directory_ships_only_code_and_the_template():
     stray = [p.name for p in (TOOL_DIR / "bars").iterdir()
              if not (p.suffix == ".py" or p.name == "REVIEW_TEMPLATE.md" or (p.is_dir() and p.name == "__pycache__"))]
     assert stray == [], f"unexpected files in the shipped package: {stray}"
+
+
+def test_user_credential_injects_the_variable_the_package_reads():
+    secrets = [s for c in MACROS.iter("credentials") for s in c.iter("secret")]
+    assert [s.get("inject_as_env") for s in secrets] == [review.USER_KEY_ENV]
+    assert all(s.get("optional") == "true" for s in secrets)
+    assert review.KEY_ENVS == (review.USER_KEY_ENV, review.KEY_ENV)

@@ -206,9 +206,10 @@ def check_run(items: list[InputItem], args: argparse.Namespace) -> None:
     if any(item.kind != "id" for item in items) and not args.confirm_not_confidential:
         raise FatalError("uploaded manuscripts require --confirm-not-confidential "
                          "(they must not be manuscripts under confidential peer review)")
-    if args.mode == "review" and not review.is_mock() and not os.environ.get(review.KEY_ENV, "").strip():
-        raise FatalError(f"mode 'review' needs a Gemini API key in {review.KEY_ENV} "
-                         "(ask the server administrator), or use mode 'scrub'")
+    if args.mode == "review" and not review.is_mock() and not review.resolve_key()[0]:
+        raise FatalError("mode 'review' needs a Gemini API key: add your own key to your Galaxy credentials "
+                         f"({review.USER_KEY_ENV}), ask the server administrator to set {review.KEY_ENV}, "
+                         "or use mode 'scrub'")
 
 
 def plan_papers(items: list[InputItem]) -> list[Paper]:
@@ -369,9 +370,10 @@ def fallback_status(paper: Paper) -> str:
 
 
 def redact_key(text: str) -> str:
-    """Defence in depth: the API key must never reach outputs or logs."""
-    key = os.environ.get(review.KEY_ENV, "").strip()
-    return text.replace(key, "[API_KEY]") if key else text
+    """Defence in depth: no API key (user's or server's) may reach outputs or logs."""
+    for key in review.env_keys():
+        text = text.replace(key, "[API_KEY]")
+    return text
 
 
 def short_error(exc: BaseException) -> str:
@@ -464,6 +466,7 @@ def write_metadata(papers: list[Paper], args: argparse.Namespace, terms: list[st
         "tools": [],
         "template_sha256": sha,
         "mock": review.is_mock(),
+        "api_key_source": "mock" if review.is_mock() else (review.resolve_key()[1] or "none"),
         "max_papers": args.max_papers,
         "n_redact_terms": len(terms),
         "started_utc": started,

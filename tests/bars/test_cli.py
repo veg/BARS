@@ -121,6 +121,7 @@ def fakes(monkeypatch):
 def clean_env(monkeypatch):
     monkeypatch.delenv("BARS_MOCK", raising=False)
     monkeypatch.delenv("BARS_GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("BARS_USER_GEMINI_API_KEY", raising=False)
 
 
 def run_cli(tmp_path, lines, *extra, mode="scrub"):
@@ -226,7 +227,7 @@ def test_uploads_require_confirmation(tmp_path, fakes, capsys):
 
 def test_review_mode_requires_key_or_mock(tmp_path, fakes, capsys, monkeypatch):
     code, _ = run_cli(tmp_path, ["id\tPMC1"], mode="review")
-    assert_fatal(code, capsys, "BARS_GEMINI_API_KEY")
+    assert_fatal(code, capsys, "BARS_USER_GEMINI_API_KEY")
     assert fakes.resolved == []
 
     monkeypatch.setenv("BARS_MOCK", "1")
@@ -392,6 +393,7 @@ def test_review_mode_with_mock(tmp_path, fakes, monkeypatch):
     meta = json.loads((out / "run_metadata.json").read_text())
     assert meta["mock"] is True and meta["model"] == "gemini-x" and meta["seed"] == 3 and meta["temperature"] == 0.7
     assert meta["papers"][0]["model_version"] == "mock"
+    assert meta["api_key_source"] == "mock"
 
 
 def test_review_error_status(tmp_path, fakes, monkeypatch):
@@ -441,6 +443,55 @@ def test_key_never_reaches_outputs(tmp_path, fakes, monkeypatch, capsys):
             assert FAKE_KEY not in path.read_text(encoding="utf-8"), path
     captured = capsys.readouterr()
     assert FAKE_KEY not in captured.out + captured.err
+
+
+USER_KEY = "AIzaUSER-cli-test-key-0123456789"
+
+
+@pytest.mark.parametrize(("envs", "source"), [
+    ({"BARS_USER_GEMINI_API_KEY": USER_KEY}, "user"),
+    ({"BARS_GEMINI_API_KEY": FAKE_KEY}, "server"),
+    ({"BARS_USER_GEMINI_API_KEY": USER_KEY, "BARS_GEMINI_API_KEY": FAKE_KEY}, "user"),
+])
+def test_either_key_enables_review_and_its_source_is_recorded(tmp_path, fakes, monkeypatch, envs, source):
+    for env, value in envs.items():
+        monkeypatch.setenv(env, value)
+    monkeypatch.setattr(cli.review, "review", lambda *a, **k: ReviewResult(
+        markdown="# Review of MANUSCRIPT_001\n", model="gemini-x", model_version="gemini-x-002", finish_reason="STOP"))
+    code, out = run_cli(tmp_path, ["id\tPMC1"], mode="review")
+    assert code == 0
+    meta = json.loads((out / "run_metadata.json").read_text())
+    assert meta["api_key_source"] == source
+    for path in out.rglob("*"):
+        if path.is_file():
+            text = path.read_text(encoding="utf-8")
+            assert USER_KEY not in text and FAKE_KEY not in text, path
+
+
+def test_scrub_mode_records_no_key(tmp_path, fakes):
+    code, out = run_cli(tmp_path, ["id\tPMC1"])
+    assert code == 0
+    assert json.loads((out / "run_metadata.json").read_text())["api_key_source"] == "none"
+
+
+def test_both_keys_are_redacted(tmp_path, fakes, monkeypatch, capsys):
+    monkeypatch.setenv("BARS_USER_GEMINI_API_KEY", USER_KEY)
+    monkeypatch.setenv("BARS_GEMINI_API_KEY", FAKE_KEY)
+
+    def leaky(*args, **kwargs):  # simulate a bug that puts both keys into an error message
+        raise RuntimeError(f"tried ?key={USER_KEY} then ?key={FAKE_KEY}")
+
+    monkeypatch.setattr(cli.review, "review", leaky)
+    code, out = run_cli(tmp_path, ["id\tPMC1"], mode="review")
+    assert code == 1
+    (row,) = read_tsv(out / "scores.tsv")
+    assert row["message"].count("[API_KEY]") == 2
+    for path in out.rglob("*"):
+        if path.is_file():
+            text = path.read_text(encoding="utf-8")
+            assert USER_KEY not in text and FAKE_KEY not in text, path
+    captured = capsys.readouterr()
+    assert USER_KEY not in captured.out + captured.err and FAKE_KEY not in captured.out + captured.err
 
 
 def test_redact_terms_reach_scrub_and_leakcheck(tmp_path, fakes):

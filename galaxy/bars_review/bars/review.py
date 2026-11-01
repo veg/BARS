@@ -1,8 +1,9 @@
 """Send a de-identified manuscript to Gemini with REVIEW_TEMPLATE.md as the rubric.
 
 The model gets the scrubbed markdown and an anonymous manuscript ID only. No tools
-(web search, URL context) are enabled. The API key is read from BARS_GEMINI_API_KEY
-and is never included in exceptions or results.
+(web search, URL context) are enabled. The API key is the user's own (BARS_USER_GEMINI_API_KEY,
+injected by Galaxy from the user's credentials) or else the server's (BARS_GEMINI_API_KEY, set by
+the administrator); it is never included in exceptions or results.
 """
 
 from __future__ import annotations
@@ -18,7 +19,9 @@ from typing import Any
 
 from .model import ReviewResult
 
-KEY_ENV = "BARS_GEMINI_API_KEY"
+USER_KEY_ENV = "BARS_USER_GEMINI_API_KEY"  # the user's own key, from Galaxy user credentials
+KEY_ENV = "BARS_GEMINI_API_KEY"  # the server's key, from the administrator's job environment
+KEY_ENVS = (USER_KEY_ENV, KEY_ENV)  # in order of precedence
 MOCK_ENV = "BARS_MOCK"
 TEMPLATE_PATH = Path(__file__).with_name("REVIEW_TEMPLATE.md")
 ANON_ID_RE = re.compile(r"MANUSCRIPT_\d+")
@@ -140,6 +143,20 @@ def is_mock() -> bool:
     return os.environ.get(MOCK_ENV) == "1"
 
 
+def resolve_key() -> tuple[str, str]:
+    """Return (key, source): the user's key if set, else the server's; source is "user", "server" or ""."""
+    for env, source in ((USER_KEY_ENV, "user"), (KEY_ENV, "server")):
+        key = os.environ.get(env, "").strip()
+        if key:
+            return key, source
+    return "", ""
+
+
+def env_keys() -> list[str]:
+    """Every API key present in the environment, for redaction."""
+    return [key for key in (os.environ.get(env, "").strip() for env in KEY_ENVS) if key]
+
+
 def mock_review(scrubbed_text: str, anon_id: str, model: str) -> ReviewResult:
     markdown = MOCK_REVIEW.format(anon_id=anon_id, n_chars=len(scrubbed_text))
     return ReviewResult(markdown=markdown, model=model, model_version="mock",
@@ -162,10 +179,11 @@ def review(
     if is_mock():
         return mock_review(scrubbed_text, anon_id, model)
 
-    key = (api_key or os.environ.get(KEY_ENV) or "").strip()
+    key = (api_key or resolve_key()[0]).strip()
     if client is None:
         if not key:
-            raise ReviewError(f"{KEY_ENV} is not set; the server administrator must provide a Gemini API key")
+            raise ReviewError(f"no Gemini API key: neither {USER_KEY_ENV} (your Galaxy credentials) nor "
+                              f"{KEY_ENV} (set by the server administrator) is set")
         try:
             client = _make_client(key)
         except Exception as exc:  # noqa: BLE001
