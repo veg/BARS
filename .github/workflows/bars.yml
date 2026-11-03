@@ -1,0 +1,65 @@
+name: BARS Galaxy tool
+
+on:
+  push:
+    paths:
+      - 'galaxy/**'
+      - 'tests/bars/**'
+      - 'REVIEW_TEMPLATE.md'
+      - '.github/workflows/bars.yml'
+  pull_request:
+    paths:
+      - 'galaxy/**'
+      - 'tests/bars/**'
+      - 'REVIEW_TEMPLATE.md'
+      - '.github/workflows/bars.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest (bars package)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.12'
+      # Same versions as the tool requirements in galaxy/bars_review/macros.xml.
+      - name: Install pinned dependencies
+        run: python -m pip install google-genai==2.34.0 pymupdf==2.0 lxml==6.1.3 requests==2.34.2 pytest==9.2.0
+      - name: Run pytest (no network, no API key)
+        run: python -m pytest -q tests/bars
+
+  planemo:
+    name: planemo lint + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install planemo
+        run: python -m pip install planemo==0.75.47
+      - name: Lint tool and Tool Shed metadata
+        run: |
+          planemo lint --fail_level warn galaxy/bars_review
+          planemo shed_lint --tools --fail_level warn galaxy/bars_review
+      - name: Run tool tests (conda dependency resolution; scrub mode only, no API key)
+        run: >
+          planemo test
+          --conda_dependency_resolution --conda_auto_init --conda_auto_install
+          --galaxy_python_version 3.12
+          --test_output tool_test_output.html
+          --test_output_json tool_test_output.json
+          galaxy/bars_review
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: planemo-test-report
+          path: |
+            tool_test_output.html
+            tool_test_output.json
+          if-no-files-found: ignore

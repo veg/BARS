@@ -1,0 +1,18 @@
+name: bars_review
+owner: nekrut
+type: unrestricted
+categories:
+  - Natural Language Processing
+  - Web Services
+description: BARS blinded AI peer review of manuscripts with Google Gemini
+long_description: |
+  BARS (Blinded AI Review System) reviews scientific manuscripts with Google Gemini under a blinded protocol.
+  It fetches open-access papers from Europe PMC by PMCID, PMID or DOI, or ingests uploaded JATS XML or PDF files;
+  de-identifies them (authors, affiliations, journal, identifiers, links replaced by typed placeholders); runs a
+  fail-closed leak check; sends the scrubbed text to the Gemini API with the BARS review template as rubric; and
+  parses and validates the scores. A scrub-only mode makes no API call. Review mode needs a Gemini API key: the user's
+  own, from Galaxy user credentials (Galaxy 25.1+), or the server's, set by the administrators as BARS_GEMINI_API_KEY.
+homepage_url: https://github.com/spond/gemini-reviews/tree/main/galaxy/bars_review
+remote_repository_url: https://github.com/spond/gemini-reviews/tree/main/galaxy/bars_review
+exclude:
+  - bars/__pycache__

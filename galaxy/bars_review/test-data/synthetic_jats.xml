@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//NLM//DTD JATS (Z39.96) Journal Archiving and Interchange DTD with MathML3 v1.2 20190208//EN" "JATS-archive-oasis-article1-mathml3.dtd">
+<!-- Synthetic test fixture for the BARS Galaxy tool. Every person, institution, journal, URL and
+     identifier below is fictional (10.5555 is Crossref's test prefix). -->
+<article xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:mml="http://www.w3.org/1998/Math/MathML" article-type="research-article" dtd-version="1.2" xml:lang="en">
+  <front>
+    <journal-meta>
+      <journal-id journal-id-type="nlm-ta">J Marsupial Genomics</journal-id>
+      <journal-id journal-id-type="publisher-id">jmg</journal-id>
+      <journal-title-group>
+        <journal-title>Journal of Marsupial Genomics</journal-title>
+      </journal-title-group>
+      <issn pub-type="epub">9999-0042</issn>
+      <publisher>
+        <publisher-name>Outback Science Press</publisher-name>
+      </publisher>
+    </journal-meta>
+    <article-meta>
+      <article-id pub-id-type="pmcid">PMC9999042</article-id>
+      <article-id pub-id-type="pmid">99999042</article-id>
+      <article-id pub-id-type="doi">10.5555/jmg.2019.0042</article-id>
+      <article-id pub-id-type="publisher-id">JMG-D-18-00042</article-id>
+      <article-categories>
+        <subj-group subj-group-type="heading">
+          <subject>Research Article</subject>
+        </subj-group>
+      </article-categories>
+      <title-group>
+        <article-title>Convergent evolution of burrowing genes in <italic>Vombatus</italic> and other marsupials revealed by comparative genomics</article-title>
+        <alt-title alt-title-type="running-head">Burrowing genes in marsupials</alt-title>
+      </title-group>
+      <contrib-group>
+        <contrib contrib-type="author" corresp="yes">
+          <contrib-id contrib-id-type="orcid" authenticated="true">https://orcid.org/0000-0002-1825-0097</contrib-id>
+          <name name-style="western">
+            <surname>Quokkason</surname>
+            <given-names>Alice</given-names>
+          </name>
+          <role content-type="http://credit.niso.org/contributor-roles/conceptualization/">Conceptualization</role>
+          <xref ref-type="aff" rid="aff1"><sup>1</sup></xref>
+          <xref ref-type="corresp" rid="cor1">*</xref>
+        </contrib>
+        <contrib contrib-type="author">
+          <name name-style="western">
+            <surname>Numbat</surname>
+            <given-names>Bertrand</given-names>
+          </name>
+          <role content-type="http://credit.niso.org/contributor-roles/formal-analysis/">Formal analysis</role>
+          <xref ref-type="aff" rid="aff1"><sup>1</sup></xref>
+          <xref ref-type="aff" rid="aff2"><sup>2</sup></xref>
+          <xref ref-type="fn" rid="fn-addr"><sup>¤</sup></xref>
+        </contrib>
+      </contrib-group>
+      <aff id="aff1"><label>1</label><institution content-type="dept">Department of Marsupial Genomics</institution>, <institution>University of Wombatia</institution>, <addr-line>Burrow City</addr-line>, <country>Australia</country></aff>
+      <aff id="aff2"><label>2</label><institution>Tasmanian Institute of Devil Studies</institution>, <addr-line>Hobart</addr-line>, <country>Australia</country></aff>
+      <contrib-group>
+        <contrib contrib-type="editor">
+          <name name-style="western">
+            <surname>Platypodes</surname>
+            <given-names>Cedric</given-names>
+          </name>
+          <role>Editor</role>
+          <xref ref-type="aff" rid="edit1"/>
+        </contrib>
+      </contrib-group>
+      <aff id="edit1"><addr-line>Monotreme Research Station, AUSTRALIA</addr-line></aff>
+      <author-notes>
+        <corresp id="cor1">* Corresponding author. E-mail: <email>alice@quokka-lab.org</email> (AQ)</corresp>
+        <fn fn-type="present-address" id="fn-addr"><label>¤</label><p>Current address: Bilby Bioinformatics Centre, Alice Springs, Australia</p></fn>
+      </author-notes>
+      <pub-date pub-type="epub">
+        <day>14</day>
+        <month>6</month>
+        <year>2019</year>
+      </pub-date>
+      <pub-date pub-type="collection">
+        <year>2019</year>
+      </pub-date>
+      <pub-date pub-type="pmc-release">
+        <day>14</day>
+        <month>6</month>
+        <year>2020</year>
+      </pub-date>
+      <volume>7</volume>
+      <issue>6</issue>
+      <elocation-id>e0042</elocation-id>
+      <history>
+        <date date-type="received"><day>3</day><month>9</month><year>2018</year></date>
+        <date date-type="accepted"><day>20</day><month>5</month><year>2019</year></date>
+      </history>
+      <permissions>
+        <copyright-statement>© 2019 Quokkason, Numbat</copyright-statement>
+        <copyright-year>2019</copyright-year>
+        <copyright-holder>Quokkason, Numbat</copyright-holder>
+        <license license-type="open-access" xlink:href="https://creativecommons.org/licenses/by/4.0/">
+          <license-p>This is an open access article distributed under the terms of the Creative Commons Attribution License.</license-p>
+        </license>
+      </permissions>
+      <self-uri content-type="pdf" xlink:href="jmg.0042.pdf"/>
+      <abstract>
+        <p>Burrowing has evolved repeatedly in marsupials, yet the genetic basis of digging behaviour is poorly understood. We compared 42 marsupial genomes and tested 1,204 genes for episodic positive selection on burrowing lineages. Three genes (<italic>BRW1</italic>, <italic>DIG2</italic> and <italic>CLAW3</italic>) showed convergent signatures of selection, and site-level models identified 25 codons under diversifying selection.</p>
+      </abstract>
+      <abstract abstract-type="summary">
+        <title>Author summary</title>
+        <p>Wombats, marsupial moles and bandicoots dig for a living. We asked whether the same genes changed each time burrowing evolved, and found three genes that did.</p>
+      </abstract>
+      <abstract abstract-type="teaser">
+        <p>Teaser text that must not be rendered.</p>
+      </abstract>
+      <kwd-group kwd-group-type="author">
+        <kwd>burrowing</kwd>
+        <kwd>positive selection</kwd>
+      </kwd-group>
+      <counts>
+        <fig-count count="1"/>
+        <table-count count="1"/>
+        <page-count count="9"/>
+      </counts>
+      <custom-meta-group>
+        <custom-meta>
+          <meta-name>pmc-prop-open-access</meta-name>
+          <meta-value>yes</meta-value>
+        </custom-meta>
+        <custom-meta id="data-availability">
+          <meta-name>Data Availability</meta-name>
+          <meta-value>All code is available at <ext-link ext-link-type="uri" xlink:href="https://github.com/quokkalab/marsupial-pipeline">github.com/quokkalab/marsupial-pipeline</ext-link>. The complete analysis is published as <ext-link ext-link-type="uri" xlink:href="https://usegalaxy.org/u/aquokka/h/marsupial-run">our Galaxy history</ext-link> and the workflow is registered at WorkflowHub (<ext-link ext-link-type="uri" xlink:href="https://workflowhub.eu/workflows/4242">https://workflowhub.eu/workflows/4242</ext-link>). Raw reads are archived at Zenodo (<ext-link ext-link-type="doi" xlink:href="https://doi.org/10.5281/zenodo.1234567">10.5281/zenodo.1234567</ext-link>) and in the SRA under accession PRJNA999042.</meta-value>
+        </custom-meta>
+      </custom-meta-group>
+    </article-meta>
+  </front>
+  <body>
+    <sec id="sec001" sec-type="intro">
+      <title>Introduction</title>
+      <p>Fossorial mammals share skeletal and behavioural adaptations for digging. Quokkason et al. (2015) [<xref ref-type="bibr" rid="ref1">1</xref>] described burrowing-associated expression changes in wombat forelimbs, and Numbat and colleagues [<xref ref-type="bibr" rid="ref2">2</xref>] later proposed that claw morphology evolves under strong selection<sup><xref ref-type="bibr" rid="ref3">3</xref></sup>.</p>
+      <p>Here we test whether the same genes are repeatedly targeted by selection across independent burrowing lineages, using the ratio of non-synonymous to synonymous substitution rates (d<sub>N</sub>/d<sub>S</sub>).</p>
+    </sec>
+    <sec id="sec002" sec-type="materials|methods">
+      <title>Materials and methods</title>
+      <sec id="sec003">
+        <title>Sampling and <italic>ethics</italic></title>
+        <p>All sampling procedures were approved by the University of Wombatia ethics board (protocol UW-17-42). Tissue requests can be sent to alice@quokka-lab.org. Samples were kept in the Nguyễn Lab’s freezer.</p>
+      </sec>
+      <sec id="sec004">
+        <title>Selection analyses</title>
+        <p>Gene-wide episodic selection was tested with a branch-site random-effects model in which the rate ratio <inline-formula><mml:math id="M1"><mml:mrow><mml:mi>ω</mml:mi><mml:mo>=</mml:mo><mml:mfrac><mml:msub><mml:mi>d</mml:mi><mml:mi>N</mml:mi></mml:msub><mml:msub><mml:mi>d</mml:mi><mml:mi>S</mml:mi></mml:msub></mml:mfrac></mml:mrow></mml:math></inline-formula> varies across branches and sites:</p>
+        <disp-formula id="eq1">
+          <alternatives>
+            <tex-math id="M2">\documentclass[12pt]{minimal}\begin{document}$$L(\theta) = \prod_{s} \sum_{k} p_k \, P(D_s \mid \omega_k)$$\end{document}</tex-math>
+            <mml:math id="M3"><mml:mi>L</mml:mi></mml:math>
+          </alternatives>
+          <label>(1)</label>
+        </disp-formula>
+        <p>We used three complementary tests:</p>
+        <list list-type="bullet">
+          <list-item><p>BUSTED for gene-wide episodic selection;</p></list-item>
+          <list-item><p>MEME for episodic site-level selection;</p></list-item>
+          <list-item><p>RELAX for changes in selection intensity.</p></list-item>
+        </list>
+        <p>Detailed protocols are on our <ext-link ext-link-type="uri" xlink:href="https://www.quokka-lab.org/protocols">lab website</ext-link>.</p>
+        <sec id="sec005">
+          <title>Model comparison</title>
+          <p>Nested models were compared with likelihood-ratio tests and P values were corrected with the Holm procedure.</p>
+        </sec>
+      </sec>
+    </sec>
+    <sec id="sec006" sec-type="results">
+      <title>Results</title>
+      <p>Of 1,204 genes tested, 31 showed evidence of episodic positive selection on at least one burrowing lineage, and three were selected on all four (<xref ref-type="table" rid="tab1">Table 1</xref>, <xref ref-type="fig" rid="fig1">Fig 1</xref>).</p>
+      <table-wrap id="tab1" position="float">
+        <object-id pub-id-type="doi">10.5555/jmg.2019.0042.t001</object-id>
+        <label>Table 1</label>
+        <caption>
+          <title>Genes under selection on burrowing lineages.</title>
+          <p>Counts of codons under diversifying selection per method.</p>
+        </caption>
+        <alternatives>
+          <graphic xlink:href="jmg.0042.t001.jpg"/>
+          <table frame="box" rules="all">
+            <thead>
+              <tr><th rowspan="2">Gene</th><th colspan="2">Selected sites</th></tr>
+              <tr><th>MEME</th><th>FEL</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>BRW1</td><td>12</td><td>8</td></tr>
+              <tr><td rowspan="2">DIG2</td><td>5</td><td>3</td></tr>
+              <tr><td>4</td><td>2</td></tr>
+              <tr><td>CLAW3 | variant</td><td>0</td><td>1</td></tr>
+            </tbody>
+          </table>
+        </alternatives>
+        <table-wrap-foot>
+          <fn id="tfn1"><p>Sites with p ≤ 0.1.</p></fn>
+        </table-wrap-foot>
+      </table-wrap>
+      <fig id="fig1" position="float">
+        <object-id pub-id-type="doi">10.5555/jmg.2019.0042.g001</object-id>
+        <label>Fig 1</label>
+        <caption>
+          <title>Phylogeny of the 42 marsupials.</title>
+          <p>Burrowing lineages are shown in bold; branches under selection in red.</p>
+        </caption>
+        <graphic xlink:href="jmg.0042.g001.tif"/>
+      </fig>
+      <p>In 2021 we resequenced two additional wombat populations and recovered the same selected sites.</p>
+    </sec>
+    <sec id="sec007" sec-type="discussion">
+      <title>Discussion</title>
+      <p>Convergent selection on <italic>BRW1</italic>, <italic>DIG2</italic> and <italic>CLAW3</italic> suggests a shared developmental route to fossoriality.</p>
+      <supplementary-material id="sup1" content-type="local-data">
+        <label>S1 Table</label>
+        <caption><p>Per-codon test statistics for all 1,204 genes.</p></caption>
+        <media xlink:href="jmg.0042.s001.xlsx"/>
+      </supplementary-material>
+    </sec>
+  </body>
+  <back>
+    <ack>
+      <p>We thank Dingo Wallaby and the University of Wombatia sequencing core for support.</p>
+    </ack>
+    <sec id="sec008">
+      <title>Author contributions</title>
+      <p>Conceptualization: Alice Quokkason. Formal analysis: Bertrand Numbat. Writing: Alice Quokkason, Bertrand Numbat.</p>
+    </sec>
+    <fn-group>
+      <fn fn-type="financial-disclosure">
+        <p>This work was funded by the Wombat Research Council (grant WRC-123 to AQ). The funders had no role in study design.</p>
+      </fn>
+      <fn fn-type="COI-statement">
+        <p><bold>Competing interests: </bold>The authors have declared that no competing interests exist.</p>
+      </fn>
+    </fn-group>
+    <ref-list>
+      <title>References</title>
+      <ref id="ref1">
+        <label>1</label>
+        <mixed-citation publication-type="journal"><person-group person-group-type="author"><name><surname>Quokkason</surname><given-names>A</given-names></name>, <name><surname>Wallaby</surname><given-names>D</given-names></name></person-group>. <article-title>Burrowing behaviour genes in marsupials</article-title>. <source>J Marsupial Genomics</source>. <year>2015</year>;<volume>3</volume>:<fpage>1</fpage>–<lpage>10</lpage>.</mixed-citation>
+      </ref>
+      <ref id="ref2">
+        <label>2</label>
+        <element-citation publication-type="journal"><person-group person-group-type="author"><name><surname>Numbat</surname><given-names>B</given-names></name></person-group><article-title>Claw morphology and digging performance</article-title><source>Outback Zool</source><year>2017</year><volume>12</volume><fpage>44</fpage><lpage>51</lpage></element-citation>
+      </ref>
+      <ref id="ref3">
+        <label>3</label>
+        <mixed-citation publication-type="journal">Bilby C. Digging deeper. <source>Outback Zool</source>. 2016;11:1–5.</mixed-citation>
+      </ref>
+    </ref-list>
+  </back>
+</article>

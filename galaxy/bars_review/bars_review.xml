@@ -1,0 +1,336 @@
+<tool id="bars_review" name="BARS blinded review" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@" license="MIT">
+    <description>de-identify manuscripts and score them with Gemini against the BARS rubric</description>
+    <macros>
+        <import>macros.xml</import>
+        <token name="@LABEL@">${tool.name}#if $on_string# on ${on_string}#end if#</token>
+    </macros>
+    <expand macro="requirements"/>
+    <expand macro="required_files"/>
+    <command detect_errors="exit_code"><![CDATA[
+#if $source.source_type == 'ids_file'
+    ## one manifest row per identifier line: tabs/CRs flattened, blank and comment lines skipped
+    tr '\t\r' '  ' < '$source.ids_file'
+    | awk 'NF && \$1 !~ /^#/ { print "id\t" \$0 "\t" }' > manifest.tsv &&
+#else
+    cp '$manifest' manifest.tsv &&
+#end if
+PYTHONPATH='${__tool_directory__}'
+python -m bars run
+    --manifest manifest.tsv
+    --outdir out
+    --mode '$mode'
+    --model '@MODEL@'
+    --max-papers @MAX_PAPERS@
+    #if $redact_terms
+        --redact-terms '$terms_file'
+    #end if
+    #if $source.source_type == 'upload'
+        $source.confirm_not_confidential
+    #end if
+    ]]></command>
+    <configfiles>
+        <!-- Manifest TSV (kind, value, label). User text is whitespace-normalised so it cannot break the columns. -->
+        <configfile name="manifest"><![CDATA[#set $TAB = chr(9)
+#if $source.source_type == 'ids_text'
+#for $line in str($source.ids).splitlines()
+#set $value = ' '.join($line.split())
+#if $value and not $value.startswith('#')
+id${TAB}${value}${TAB}
+#end if
+#end for
+#elif $source.source_type == 'upload'
+#for $manuscript in $source.manuscripts
+#set $kind = 'pdf' if $manuscript.ext == 'pdf' else 'jats'
+#set $label = ' '.join(str($manuscript.element_identifier).split())
+${kind}${TAB}${manuscript}${TAB}${label}
+#end for
+#end if
+]]></configfile>
+        <!-- Extra redaction terms, one per line or comma-separated (split by the CLI). -->
+        <configfile name="terms_file"><![CDATA[#if $redact_terms
+${redact_terms}
+#end if
+]]></configfile>
+    </configfiles>
+    <inputs>
+        <conditional name="source">
+            <param name="source_type" type="select" label="Manuscript source">
+                <option value="ids_text" selected="true">Identifiers typed in (PMCID, PMID or DOI)</option>
+                <option value="ids_file">Identifiers from a text dataset</option>
+                <option value="upload">Uploaded manuscripts (PDF or JATS XML)</option>
+            </param>
+            <when value="ids_text">
+                <param name="ids" type="text" area="true" optional="false" label="Identifiers"
+                    help="PMCID (PMC9629619), PMID (PMID:36322727) or DOI (10.1371/journal.pone.0123456), one per line or separated by commas. Only open-access articles with full text in Europe PMC can be fetched. At most @MAX_PAPERS@.">
+                    <expand macro="text_sanitizer"/>
+                    <validator type="empty_field" message="Enter at least one identifier."/>
+                </param>
+            </when>
+            <when value="ids_file">
+                <param name="ids_file" type="data" format="txt" label="Identifier list"
+                    help="Text dataset with one or more PMCIDs, PMIDs or DOIs per line; lines starting with # are ignored. At most @MAX_PAPERS@."/>
+            </when>
+            <when value="upload">
+                <param name="manuscripts" type="data" format="pdf,xml" multiple="true" label="Manuscripts"
+                    help="PDF or JATS XML full text, or a collection of them. At most @MAX_PAPERS@. Dataset names only name the outputs; the reviewer sees an anonymous ID."/>
+                <param name="confirm_not_confidential" type="boolean" truevalue="--confirm-not-confidential" falsevalue="" checked="false"
+                    label="I confirm these are my own or published manuscripts, not manuscripts under confidential peer review"
+                    help="Required for uploads: the de-identified text is sent to a third-party API. The job fails without this confirmation."/>
+            </when>
+        </conditional>
+        <param name="mode" type="select" label="Mode">
+            <option value="review" selected="true">Blinded review: scrub, leak-check, then review with Gemini</option>
+            <option value="scrub">Scrub and leak-check only — no API call</option>
+        </param>
+        <param name="redact_terms" type="text" area="true" optional="true" label="Extra terms to redact"
+            help="Names or phrases to remove in addition to the automatic de-identification (e.g. lab nicknames, project or cohort names, or the author names of a PDF), one per line or separated by commas. Matched case-insensitively as whole words and replaced by [REDACTED_TERM].">
+            <!-- Kept verbatim (apostrophes, any script): the value only reaches the terms configfile, never
+                 the shell, and a changed term would be neither redacted nor leak-checked. -->
+            <sanitizer sanitize="false"/>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="scores" format="tabular" from_work_dir="out/scores.tsv" label="@LABEL@: scores"/>
+        <data name="leaks" format="tabular" from_work_dir="out/leaks.tsv" label="@LABEL@: leak report"/>
+        <data name="run_metadata" format="json" from_work_dir="out/run_metadata.json" label="@LABEL@: run metadata"/>
+        <collection name="scrubbed" type="list" label="@LABEL@: scrubbed manuscripts">
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)\.md" directory="out/scrubbed" format="markdown"/>
+        </collection>
+        <collection name="reviews" type="list" label="@LABEL@: reviews">
+            <filter>mode == 'review'</filter>
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)\.md" directory="out/reviews" format="markdown"/>
+        </collection>
+    </outputs>
+    <tests>
+        <!-- No test needs an API key or network: uploads in scrub mode, and fatal argument checks. -->
+        <test expect_num_outputs="4">
+            <conditional name="source">
+                <param name="source_type" value="upload"/>
+                <param name="manuscripts" value="synthetic_jats.xml,synthetic.pdf"/>
+                <param name="confirm_not_confidential" value="true"/>
+            </conditional>
+            <param name="mode" value="scrub"/>
+            <!-- a curly apostrophe and a letter outside Latin-1 must reach the CLI unchanged -->
+            <param name="redact_terms" value="UW-17-42&#10;Holm procedure&#10;Nguyễn Lab’s freezer"/>
+            <output name="scores" ftype="tabular">
+                <assert_contents>
+                    <has_n_lines n="3"/>
+                    <has_line_matching expression="^id\tname\tinput_type\tstatus\ttotal\tcore\trigor\tclaims\tbiology\treproducibility\ttier\t.*"/>
+                    <has_line_matching expression="^synthetic_jats\.xml\tsynthetic_jats\tjats\tscrubbed\t.*"/>
+                    <has_line_matching expression="^synthetic\.pdf\tsynthetic\tpdf\tscrubbed\t.*"/>
+                </assert_contents>
+            </output>
+            <output name="leaks" ftype="tabular">
+                <assert_contents>
+                    <has_line line="id&#9;name&#9;kind&#9;severity&#9;match&#9;context"/>
+                    <not_has_text text="&#9;block&#9;"/>
+                </assert_contents>
+            </output>
+            <output name="run_metadata" ftype="json">
+                <assert_contents>
+                    <has_json_property_with_text property="mode" text="scrub"/>
+                    <has_json_property_with_text property="model" text="@MODEL@"/>
+                    <has_json_property_with_value property="n_redact_terms" value="3"/>
+                </assert_contents>
+            </output>
+            <output_collection name="scrubbed" type="list" count="2">
+                <element name="synthetic" ftype="markdown">
+                    <assert_contents>
+                        <has_text text="[REDACTED FOR BLINDED REVIEW]"/>
+                        <has_text text="[AUTHOR_REDACTED] et al."/>
+                        <has_text text="[INSTITUTION_REDACTED]"/>
+                        <has_text text="[CODE_REPO_URL]"/>
+                        <has_text text="[GALAXY_HISTORY_URL]"/>
+                        <has_text text="[DATA_ARCHIVE_DOI]"/>
+                        <has_text text="[REDACTED_TERM]"/>
+                        <not_has_text text="burrowing genes in wombats"/>
+                        <not_has_text text="Journal of Marsupial Genomics"/>
+                        <not_has_text text="Quokkason"/>
+                        <not_has_text text="Numbat"/>
+                        <not_has_text text="Wombatia"/>
+                        <not_has_text text="quokka-lab.org"/>
+                        <not_has_text text="0000-0002-1825-0097"/>
+                        <not_has_text text="github.com"/>
+                        <not_has_text text="usegalaxy.org"/>
+                        <not_has_text text="Dingo Wallaby"/>
+                        <not_has_text text="UW-17-42"/>
+                    </assert_contents>
+                </element>
+                <element name="synthetic_jats" ftype="markdown">
+                    <assert_contents>
+                        <has_text text="[REDACTED FOR BLINDED REVIEW]"/>
+                        <has_text text="Data Availability"/>
+                        <has_text text="[CODE_REPO_URL]"/>
+                        <has_text text="[GALAXY_HISTORY_URL]"/>
+                        <has_text text="[WORKFLOW_REGISTRY_URL]"/>
+                        <has_text text="[DATA_ARCHIVE_DOI]"/>
+                        <has_text text="PRJNA999042"/>
+                        <has_text text="[AUTHOR_REDACTED] et al."/>
+                        <has_text text="[INSTITUTION_REDACTED]"/>
+                        <has_text text="[EMAIL_REDACTED]"/>
+                        <has_text text="[POST_T0_YEAR_REDACTED]"/>
+                        <has_text text="[REDACTED_TERM]"/>
+                        <not_has_text text="Vombatus"/>
+                        <not_has_text text="Journal of Marsupial Genomics"/>
+                        <not_has_text text="Outback Science Press"/>
+                        <not_has_text text="Quokkason"/>
+                        <not_has_text text="Numbat"/>
+                        <not_has_text text="Wombatia"/>
+                        <not_has_text text="quokka-lab.org"/>
+                        <not_has_text text="0000-0002-1825-0097"/>
+                        <not_has_text text="PMC9999042"/>
+                        <not_has_text text="10.5555/jmg"/>
+                        <not_has_text text="github.com"/>
+                        <not_has_text text="usegalaxy.org"/>
+                        <not_has_text text="workflowhub.eu"/>
+                        <not_has_text text="10.5281/zenodo.1234567"/>
+                        <not_has_text text="Dingo Wallaby"/>
+                        <not_has_text text="Wombat Research Council"/>
+                        <not_has_text text="Teaser text"/>
+                        <not_has_text text="UW-17-42"/>
+                        <not_has_text text="Nguyễn"/>
+                    </assert_contents>
+                </element>
+            </output_collection>
+        </test>
+        <!-- Uploads without the confidentiality confirmation are refused before any processing. -->
+        <test expect_exit_code="2" expect_failure="true">
+            <conditional name="source">
+                <param name="source_type" value="upload"/>
+                <param name="manuscripts" value="synthetic_jats.xml" ftype="xml"/>
+                <param name="confirm_not_confidential" value="false"/>
+            </conditional>
+            <param name="mode" value="scrub"/>
+            <assert_stderr>
+                <has_text text="uploaded manuscripts require --confirm-not-confidential"/>
+            </assert_stderr>
+        </test>
+        <!-- More than @MAX_PAPERS@ identifiers: rejected at the cap check, before any network access. -->
+        <test expect_exit_code="2" expect_failure="true">
+            <conditional name="source">
+                <param name="source_type" value="ids_text"/>
+                <param name="ids" value="PMC1000001, PMC1000002, PMC1000003&#10;PMC1000004 PMC1000005&#10;# comment line&#10;PMC1000006&#10;PMC1000007&#10;PMC1000008&#10;PMC1000009&#10;PMC1000010&#10;PMC1000011&#10;PMC1000012&#10;PMC1000013&#10;PMC1000014&#10;PMC1000015&#10;PMC1000016&#10;PMC1000017&#10;PMC1000018&#10;PMC1000019&#10;PMC1000020&#10;PMC1000021&#10;PMC1000022&#10;PMC1000023&#10;PMC1000024&#10;PMC1000025&#10;PMC1000026"/>
+            </conditional>
+            <param name="mode" value="scrub"/>
+            <assert_stderr>
+                <has_text text="too many inputs: 26 papers given, at most @MAX_PAPERS@ per run"/>
+            </assert_stderr>
+        </test>
+        <!-- The same cap through an identifier file (CRLF lines, a comment, a blank line, an inline
+             comment, several ids per line): exercises the ids_file manifest command. -->
+        <test expect_exit_code="2" expect_failure="true">
+            <conditional name="source">
+                <param name="source_type" value="ids_file"/>
+                <param name="ids_file" value="ids_26.txt" ftype="txt"/>
+            </conditional>
+            <param name="mode" value="scrub"/>
+            <assert_stderr>
+                <has_text text="too many inputs: 26 papers given, at most @MAX_PAPERS@ per run"/>
+            </assert_stderr>
+        </test>
+    </tests>
+    <help><![CDATA[
+.. class:: warningmark
+
+**Do not upload manuscripts you received for confidential peer review.** In review mode the de-identified text is sent
+to a third-party API (Google Gemini). Upload only your own manuscripts or published papers.
+
+-----
+
+**What it does**
+
+BARS (Blinded AI Review System) writes a structured, blinded peer review of each manuscript and scores it with the BARS
+rubric (``REVIEW_TEMPLATE.md`` v1.1 from https://github.com/spond/gemini-reviews). For every manuscript the tool:
+
+1. **Ingests** the full text: fetched by identifier from Europe PMC (open-access JATS XML only) or uploaded (JATS XML or
+   PDF).
+2. **De-identifies** it. The title, authors, affiliations, correspondence, journal, publication year, DOI, PMID and
+   PMCID are never emitted; acknowledgements, funding, author contributions, competing interests and the reference list
+   are dropped. In the remaining text e-mail addresses, ORCIDs, author names (including "Surname et al." citations),
+   institutions, e-mail domains, journal names, years after publication and your extra terms are replaced by typed
+   placeholders such as ``[AUTHOR_REDACTED]`` or ``[INSTITUTION_REDACTED]``. Links are replaced by typed placeholders
+   (``[CODE_REPO_URL]``, ``[GALAXY_HISTORY_URL]``, ``[GALAXY_WORKFLOW_URL]``, ``[WORKFLOW_REGISTRY_URL]``,
+   ``[DATA_ARCHIVE_URL]``, ``[DATA_ARCHIVE_DOI]``, ``[PUBLIC_DATABASE_URL]``, ``[DOI_REDACTED]``, ``[URL_REDACTED]``) so
+   the reviewer still knows that code and data were linked. Data and code availability statements are kept; accession
+   numbers are kept.
+3. **Leak-checks** the scrubbed text and fails closed: if any blocking identifier remains (e-mail, ORCID, URL, DOI,
+   author name, institution, journal, extra term ...) the manuscript is *not* sent to the reviewer (status
+   ``leak_blocked``). Weaker signals are reported as warnings.
+4. **Reviews** it (review mode only): the scrubbed text, under an anonymous ID such as ``MANUSCRIPT_001``, is sent with
+   the BARS template as system instruction to the Gemini API (model ``@MODEL@``, temperature 1.0, no web search or URL
+   tools).
+5. **Parses** the scores (Rigor /3.5, Claims /2.5, Biology /2.0, Reproducibility /2.0, Total /10, Scientific Core /8 and
+   tier) and checks that they are in range, add up and match the tier.
+
+Bibliographic metadata is re-attached to each review (provenance footer) only after the review text is final.
+
+-----
+
+**Inputs**
+
+- **Identifiers**, typed in or as a text dataset: PMCID (``PMC9629619``), PMID (``PMID:36322727`` or bare digits) or DOI
+  (``10.1371/journal.pone.0123456``, ``doi:...``, ``https://doi.org/...``). Only open-access articles with full text in
+  Europe PMC can be fetched; others get status ``not_open_access`` or ``fetch_error``.
+- **Uploads**: JATS XML (best) or PDF. PDF de-identification is heuristic (author names are guessed from the front
+  matter), so check the scrubbed text and leak report. A PDF in which no author names are found is not sent for
+  review (status ``leak_blocked``, leak kind ``no_authors``) unless you list its authors under *Extra terms to
+  redact*. Uploads require the confidentiality confirmation.
+- **Mode**: *review* runs the full pipeline; *scrub* stops after de-identification and the leak check and makes no API
+  call (identifier inputs still contact Europe PMC). Use scrub mode to inspect exactly what would be sent.
+- **Extra terms to redact**: names or phrases the automatic rules cannot know about (lab nicknames, cohort or project
+  names). They are used exactly as typed, in any script; straight and curly apostrophes match each other.
+
+At most @MAX_PAPERS@ manuscripts per job. Manuscripts are processed one after another; a failure in one does not stop
+the others.
+
+-----
+
+**Outputs**
+
+- **scores** (tabular, one row per manuscript): ``id, name, input_type, status, total, core, rigor, claims, biology,
+  reproducibility, tier, score_source, score_issues, leaks_block, leaks_warn, model, model_version, prompt_tokens,
+  output_tokens, thinking_tokens, seconds, message``. ``status`` is one of ``ok``, ``scores_invalid`` (review written
+  but scores missing or inconsistent, see ``score_issues``), ``scrubbed`` (scrub mode), ``not_open_access``,
+  ``fetch_error``, ``ingest_error``, ``leak_blocked`` or ``review_error``.
+- **leak report** (tabular): every remaining identifier found by the leak check (``id, name, kind, severity, match,
+  context``); ``block`` rows prevented the review.
+- **run metadata** (json): tool and template versions, model, settings, timestamps and per-manuscript redaction counts and
+  dropped sections.
+- **scrubbed manuscripts** (collection of markdown): exactly the text the reviewer sees (or would see).
+- **reviews** (collection of markdown, review mode only): the reviewer's report with a provenance footer.
+
+The job fails with exit code 1 when no manuscript could be processed, and with exit code 2 for an invalid request (no
+or too many inputs, uploads without confirmation, no API key configured).
+
+-----
+
+**Data handling and the API key**
+
+In review mode the de-identified text is sent to Google's Gemini API. On the paid tier Google does not use prompts or
+responses to train its models. The key comes from one of two places:
+
+- **Your own key** (takes precedence): add a Gemini API key to this tool's credentials (**Google Gemini API (BARS)**)
+  in your Galaxy user preferences. Galaxy keeps it in its encrypted vault and passes it only to your jobs. Reviews are
+  billed to it.
+- **The server's key**: the Galaxy administrators may provide one as the environment variable ``BARS_GEMINI_API_KEY``
+  for users they enable. It is visible to them in job scripts.
+
+Scrub mode needs no key. The run metadata records which key was used (``user`` or ``server``), never the key itself.
+
+-----
+
+**Limitations**
+
+- Scores are **uncalibrated** relative to the published BARS study: that study ran Gemini through Antigravity subagents,
+  while this tool calls the API directly, so scores are not directly comparable to the BARS leaderboard or calibration
+  tables.
+- The reviewer sees **text only**: figure images, supplementary files and code are not provided (figure legends and
+  tables are included as text).
+- Reviews are stochastic; repeated runs on the same manuscript differ. In testing, four runs of one manuscript gave
+  totals from 6.8 to 7.4, enough to change the tier. Treat differences of less than about one point as noise.
+- De-identification is automated and can miss identifiers or remove harmless words; check the scrubbed text and leak
+  report.
+- At most @MAX_PAPERS@ manuscripts per job (running the tool over a collection starts one job per element).
+    ]]></help>
+    <expand macro="citations"/>
+</tool>
